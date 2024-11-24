@@ -33,27 +33,27 @@ def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
     client_id = client._client_id.decode() 
     print(f"Cliente {client_id} desconectado do ThingsBoard")
 
-def client_mqtt(i, client, mean, std):
-    prev_value = mean
-    alpha = 0.8
-    noise_scale = std * 0.1
+def client_mqtt(i, client, media_total, desv_padrao):
+    valor_anterior = media_total
+    alpha = 0.8 # fator de suavizacao
+    escala_ruido = desv_padrao * 0.1 # 10% do desvio padrão
     
     while True:
         try:
-            noise = np.random.normal(loc=0, scale=noise_scale)
-           # % de chance de ocorrer um evento esporádico (coloquei como padrão 3%)
+            ruido = np.random.normal(loc=0, scale=escala_ruido)
+           # % de chance de ocorrer um evento inconsistente (coloquei como padrão 3%)
             if random.random() < 0.03:
-                print(f"Evento esporádico detectado no sensor {DEVICES[i]}")
-                noise += np.random.normal(loc=0, scale=std)
+                print(f"Evento inconsistente detectado no sensor {DEVICES[i]}")
+                ruido += np.random.normal(loc=0, scale=desv_padrao)
             
-            value = alpha * prev_value + (1 - alpha) * mean + noise
-            value = max(min(value, mean + 3*std), mean - 3*std)
+            valor = alpha * valor_anterior + (1 - alpha) * media_total + ruido
+            valor = max(min(valor, media_total + 3*desv_padrao), media_total - 3*desv_padrao)
             
-            payload = json.dumps({ DEVICES[i]: value })
+            payload = json.dumps({ DEVICES[i]: valor })
             client.publish('v1/devices/me/telemetry', payload, qos=1)
-            print(f"{DEVICES[i]} enviada: {value}")
+            print(f"{DEVICES[i]} enviada: {valor}")
             
-            prev_value = value
+            valor_anterior = valor
             time.sleep(2)
             
         except KeyboardInterrupt:
@@ -73,7 +73,7 @@ def main():
     df = df.dropna()
 
     # para pegar device aleatório
-    # device_name = df['device'].sample(1).values[0] 
+    # device_name = df['device'].sample(1).valors[0] 
     device_name = "sirrosteste_UCS_AMV-14"
     print(f"Simulando dados para a partir do dispositivo: {device_name}")
 
@@ -92,9 +92,9 @@ def main():
     
     for i in range(4):
         sub_df = device_df[DEVICES[i]]
-        mean = sub_df.mean()
-        std = sub_df.std()
-        t = threading.Thread(target=client_mqtt, args=(i, clients[i], mean, std))
+        media_total = sub_df.mean()
+        desv_padrao = sub_df.std()
+        t = threading.Thread(target=client_mqtt, args=(i, clients[i], media_total, desv_padrao))
         threads.append(t)
         t.start()
 
