@@ -25,6 +25,8 @@ pip install paho-mqtt pandas numpy python-dotenv
 
 ```bash
 cd thingsboard
+docker volume create mytb-data
+docker volume create mytb-logs
 docker compose up -d
 ```
 
