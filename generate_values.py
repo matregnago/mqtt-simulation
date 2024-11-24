@@ -4,12 +4,10 @@ import time
 import random
 import threading
 import pandas as pd
-import numpy as np
-import random
+import numpy as np 
 from dotenv import load_dotenv
 import os
 
-# Carrega o arquivo .env
 load_dotenv()
 
 token_temperatura = os.getenv("DEVICE_TEMPERATURA")
@@ -18,20 +16,20 @@ token_luminosidade = os.getenv("DEVICE_LUMINOSIDADE")
 token_ruido = os.getenv("DEVICE_RUIDO")
 
 path = os.environ["DEVICE_TEMPERATURA"]
-# Configurações do ThingsBoard
+
 THINGSBOARD_HOST = 'localhost' 
 ACESS_TOKENS = [token_temperatura, token_umidade, token_luminosidade, token_ruido]
 DEVICES = ['temperatura','umidade','luminosidade','ruido']
 csv_path = 'devices.csv'
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, connect_flags, reason_code, properties):
     client_id = client._client_id.decode()
-    if rc == 0:
+    if reason_code == 0:
         print(f"Cliente {client_id} conectado ao broker com sucesso.")
     else:
-        print(f"Cliente {client_id} falhou ao conectar, código de retorno: {rc}")
+        print(f"Cliente {client_id} falhou ao conectar")
 
-def on_disconnect(client, userdata, rc):
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
     client_id = client._client_id.decode() 
     print(f"Cliente {client_id} desconectado do ThingsBoard")
 
@@ -43,8 +41,8 @@ def client_mqtt(i, client, mean, std):
     while True:
         try:
             noise = np.random.normal(loc=0, scale=noise_scale)
-           # % de chance de ocorrer um evento esporádico
-            if random.random() < 0.1:
+           # % de chance de ocorrer um evento esporádico (coloquei como padrão 3%)
+            if random.random() < 0.03:
                 print(f"Evento esporádico detectado no sensor {DEVICES[i]}")
                 noise += np.random.normal(loc=0, scale=std)
             
@@ -56,7 +54,7 @@ def client_mqtt(i, client, mean, std):
             print(f"{DEVICES[i]} enviada: {value}")
             
             prev_value = value
-            time.sleep(1)
+            time.sleep(2)
             
         except KeyboardInterrupt:
             print("Finalizando programa...")
@@ -68,11 +66,14 @@ def client_mqtt(i, client, mean, std):
 def main():
     threads = []
     clients = []
+    
     print("Iniciando script de simulação de sensores...")
+
     df = pd.read_csv(csv_path, delimiter='|')
     df = df.dropna()
 
-    # device_name = df['device'].sample(1).values[0] # para pegar device aleatório
+    # para pegar device aleatório
+    # device_name = df['device'].sample(1).values[0] 
     device_name = "sirrosteste_UCS_AMV-14"
     print(f"Simulando dados para a partir do dispositivo: {device_name}")
 
@@ -80,11 +81,12 @@ def main():
 
     for i in range(4):
         client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2,client_id=f"Sensor de {DEVICES[i]}")
+
         client.username_pw_set(ACESS_TOKENS[i])  
         client.on_connect = on_connect
         client.on_disconnect = on_disconnect
         
-        client.connect(THINGSBOARD_HOST, 1883, 60)
+        client.connect(THINGSBOARD_HOST, 1883, 9999)
         client.loop_start()
         clients.append(client)
     
