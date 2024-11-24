@@ -4,6 +4,10 @@ O objetivo deste trabalho é criar e apresentar um ambiente de Internet das Cois
 
 ![alt text](imgs/image.png)
 
+## Vídeo explicativo
+
+**[Link para o vídeo](https://youtu.be/2NmDH7lc_-w)**
+
 ## Instalação do ambiente
 
 1. Clonar o repositório do projeto
